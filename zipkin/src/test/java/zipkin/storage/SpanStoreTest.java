@@ -828,6 +828,35 @@ public abstract class SpanStoreTest {
     }
   }
 
+  /**
+   * This test shows that if a parent ID is stored late (ex because it wasn't propagated), the span
+   * can resolve once it is.
+   */
+  @Test
+  public void lateParentIdInSharedSpan() {
+    Endpoint client = Endpoint.create("client", 192 << 24 | 168 << 16 | 1);
+    Endpoint server = Endpoint.create("server", 192 << 24 | 168 << 16 | 2);
+
+    Span clientView = Span.builder().traceId(1).parentId(1L).id(2L)
+      .name("")
+      .addAnnotation(Annotation.create((TODAY) * 1000, CLIENT_SEND, client))
+      .addAnnotation(Annotation.create((TODAY + 50) * 1000, CLIENT_RECV, client))
+      .build();
+
+    Span serverView = Span.builder().traceId(1).parentId(/* never sent */ null).id(2L)
+      .name("get")
+      .addAnnotation(Annotation.create((TODAY + 10) * 1000, SERVER_RECV, server))
+      .addAnnotation(Annotation.create((TODAY + 35) * 1000, SERVER_SEND, server))
+      .build();
+
+    accept(serverView); // server span hits the collection tier first
+    accept(clientView); // intentionally different collection event
+
+    for (Span span : store().getTrace(clientView.traceIdHigh, clientView.traceId)) {
+      assertThat(span.parentId).isEqualTo(1L);
+    }
+  }
+
   // Bugs have happened in the past where trace limit was mistaken for span count.
   @Test
   public void traceWithManySpans() {
