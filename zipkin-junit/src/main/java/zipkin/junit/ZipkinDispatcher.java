@@ -197,6 +197,11 @@ final class ZipkinDispatcher extends Dispatcher {
         String message = t.getMessage();
         result.setBody(message).setResponseCode(message.startsWith("Cannot store") ? 500 : 400);
       }
+      
+      @Override
+      public Object getCallbackObject() {
+        return null;
+      }
     });
     return result;
   }

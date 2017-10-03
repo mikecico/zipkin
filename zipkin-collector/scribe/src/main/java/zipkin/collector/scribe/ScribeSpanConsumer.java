@@ -64,6 +64,11 @@ final class ScribeSpanConsumer implements Scribe {
       @Override public void onError(Throwable t) {
         result.setException(t);
       }
+      
+      @Override
+      public Object getCallbackObject() {
+        return null;
+      }
     });
     return result;
   }

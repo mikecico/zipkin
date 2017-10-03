@@ -73,7 +73,7 @@ public abstract class Collector<D, S> {
     }
 
     try {
-      record(sampled, acceptSpansCallback(sampled));
+      record(sampled, acceptSpansCallback(sampled, callback.getCallbackObject()));
       callback.onSuccess(null);
     } catch (RuntimeException e) {
       callback.onError(errorStoringSpans(sampled, e));
@@ -91,7 +91,7 @@ public abstract class Collector<D, S> {
     return sampled;
   }
 
-  Callback<Void> acceptSpansCallback(final List<S> spans) {
+  Callback<Void> acceptSpansCallback(final List<S> spans, final Object userCallbackObject) {
     return new Callback<Void>() {
       @Override public void onSuccess(@Nullable Void value) {
       }
@@ -103,6 +103,11 @@ public abstract class Collector<D, S> {
       @Override
       public String toString() {
         return appendSpanIds(spans, new StringBuilder("AcceptSpans(")).append(")").toString();
+      }
+      
+      @Override
+      public Object getCallbackObject() {
+        return userCallbackObject;
       }
     };
   }

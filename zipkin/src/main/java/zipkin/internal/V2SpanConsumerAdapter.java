@@ -29,7 +29,7 @@ final class V2SpanConsumerAdapter implements AsyncSpanConsumer {
   }
 
   @Override public void accept(List<zipkin.Span> spans, Callback<Void> callback) {
-    delegate.accept(fromSpans(spans)).enqueue(new V2CallbackAdapter<>(callback));
+    delegate.accept(fromSpans(spans), callback.getCallbackObject()).enqueue(new V2CallbackAdapter<>(callback));
   }
 
   static List<Span> fromSpans(List<zipkin.Span> spans) {

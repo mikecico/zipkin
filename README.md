@@ -1,5 +1,15 @@
 [![Gitter chat](http://img.shields.io/badge/gitter-join%20chat%20%E2%86%92-brightgreen.svg)](https://gitter.im/openzipkin/zipkin) [![Build Status](https://travis-ci.org/openzipkin/zipkin.svg?branch=master)](https://travis-ci.org/openzipkin/zipkin) [![Download](https://api.bintray.com/packages/openzipkin/maven/zipkin/images/download.svg) ](https://bintray.com/openzipkin/maven/zipkin/_latestVersion)
 
+# Jafar Zipkin
+
+WIP - Forked repository for developing integration points with Zipkin for sending custom data along with spans.
+
+NOTE - to build right now you'll need to avoid building and running the tests:
+
+  mvn clean install -Dmaven.test.skip=true -DskipTests
+
+This will likely be changing a lot while we evaluate solutions.
+
 # zipkin
 [Zipkin](http://zipkin.io) is a distributed tracing system. It helps gather timing data needed to troubleshoot latency problems in microservice architectures. It manages both the collection and lookup of this data. Zipkin’s design is based on the [Google Dapper paper](http://research.google.com/pubs/pub36356.html).
 

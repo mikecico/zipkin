@@ -57,6 +57,11 @@ final class LenientDoubleCallbackAsyncSpanStore implements AsyncSpanStore {
       result.addAll(v2);
       return result;
     }
+    
+    @Override
+    public Object getCallbackObject() {
+      return null;
+    }
   }
 
   @Override @Deprecated public void getTrace(long id, Callback<List<Span>> callback) {
@@ -82,6 +87,11 @@ final class LenientDoubleCallbackAsyncSpanStore implements AsyncSpanStore {
       List<Span> result = new ArrayList<>(v1);
       result.addAll(v2);
       return MergeById.apply(result);
+    }
+    
+    @Override
+    public Object getCallbackObject() {
+      return null;
     }
   }
 
@@ -110,6 +120,11 @@ final class LenientDoubleCallbackAsyncSpanStore implements AsyncSpanStore {
       result.addAll(v2);
       return result; // don't merge as this is raw
     }
+    
+    @Override
+    public Object getCallbackObject() {
+      return null;
+    }
   }
 
   @Override public void getServiceNames(Callback<List<String>> callback) {
@@ -129,6 +144,11 @@ final class LenientDoubleCallbackAsyncSpanStore implements AsyncSpanStore {
       Set<String> result = new LinkedHashSet<>(v1); // retain order
       result.addAll(v2);
       return new ArrayList<>(result);
+    }
+    
+    @Override
+    public Object getCallbackObject() {
+      return null;
     }
   }
 
@@ -158,6 +178,11 @@ final class LenientDoubleCallbackAsyncSpanStore implements AsyncSpanStore {
       List<DependencyLink> concat = new ArrayList<>(v1);
       concat.addAll(v2);
       return DependencyLinker.merge(concat);
+    }
+    
+    @Override
+    public Object getCallbackObject() {
+      return null;
     }
   }
 

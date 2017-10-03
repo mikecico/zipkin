@@ -28,6 +28,7 @@ import zipkin2.Call;
 import zipkin2.storage.SpanConsumer;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
@@ -46,7 +47,7 @@ public class V2SpanConsumerAdapterTest {
 
   @Before public void setUp() {
     asyncSpanConsumer = new V2SpanConsumerAdapter(delegate);
-    when(delegate.accept(any(List.class))).thenReturn(call);
+    when(delegate.accept(any(List.class),anyObject())).thenReturn(call);
   }
 
   @Test public void accept_success() {

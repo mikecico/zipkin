@@ -28,6 +28,7 @@ import zipkin2.storage.StorageComponent;
 
 import static java.util.Arrays.asList;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -109,6 +110,6 @@ public class CollectorTest {
     collector.acceptSpans(bytes, SpanDecoder.DETECTING_DECODER, NOOP);
 
     verify(collector, never()).isSampled(any(zipkin.Span.class)); // skips v1 processing
-    verify(span2Consumer).accept(eq(asList(span2_1))); // goes to v2 instead
+    verify(span2Consumer).accept(eq(asList(span2_1)), anyObject()); // goes to v2 instead
   }
 }

@@ -62,4 +62,10 @@ public final class CallbackCaptor<V> implements Callback<V> {
     ref.set(t);
     countDown.countDown();
   }
+
+  @Override
+  public Object getCallbackObject() {
+    return null;
+  }
+  
 }

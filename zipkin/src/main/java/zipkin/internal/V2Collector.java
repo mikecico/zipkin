@@ -55,7 +55,7 @@ public final class V2Collector extends Collector<BytesDecoder<Span>, Span> {
   }
 
   @Override protected void record(List<Span> sampled, Callback<Void> callback) {
-    storage.spanConsumer().accept(sampled).enqueue(new V2CallbackAdapter<>(callback));
+    storage.spanConsumer().accept(sampled, callback.getCallbackObject()).enqueue(new V2CallbackAdapter<>(callback));
   }
 
   @Override protected String idString(Span span) {

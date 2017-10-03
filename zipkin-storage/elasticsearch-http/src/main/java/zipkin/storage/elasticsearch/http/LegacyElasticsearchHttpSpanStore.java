@@ -167,6 +167,11 @@ final class LegacyElasticsearchHttpSpanStore implements AsyncSpanStore {
       @Override public void onError(Throwable t) {
         callback.onError(t);
       }
+      
+      @Override
+      public Object getCallbackObject() {
+        return null;
+      }
     };
 
     // Fire off the query to get spans once we have trace ids
@@ -182,6 +187,11 @@ final class LegacyElasticsearchHttpSpanStore implements AsyncSpanStore {
 
       @Override public void onError(Throwable t) {
         callback.onError(t);
+      }
+
+      @Override
+      public Object getCallbackObject() {
+        return null;
       }
     });
   }
@@ -199,6 +209,11 @@ final class LegacyElasticsearchHttpSpanStore implements AsyncSpanStore {
 
       @Override public void onError(Throwable t) {
         callback.onError(t);
+      }
+
+      @Override
+      public Object getCallbackObject() {
+        return null;
       }
     });
   }
@@ -247,6 +262,11 @@ final class LegacyElasticsearchHttpSpanStore implements AsyncSpanStore {
       @Override public void onError(Throwable t) {
         callback.onError(t);
       }
+      
+      @Override
+      public Object getCallbackObject() {
+        return null;
+      }
     });
   }
 
@@ -288,6 +308,11 @@ final class LegacyElasticsearchHttpSpanStore implements AsyncSpanStore {
 
       @Override public void onError(Throwable t) {
         callback.onError(t);
+      }
+
+      @Override
+      public Object getCallbackObject() {
+        return null;
       }
     });
   }

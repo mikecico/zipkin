@@ -93,5 +93,10 @@ final class InternalGuavaSpanStoreAdapter implements GuavaSpanStore {
     @Override public void onError(Throwable t) {
       setException(t);
     }
+
+    @Override
+    public Object getCallbackObject() {
+      return null;
+    }
   }
 }
