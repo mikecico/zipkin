@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.oracle.odx.jafar.zipkin.JafarProxyStorageProperties,\
+com.oracle.odx.jafar.zipkin.JafarProxyAutoConfiguration
