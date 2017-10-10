@@ -30,7 +30,6 @@ import zipkin2.codec.SpanBytesEncoder;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.any;
 import static zipkin2.elasticsearch.ElasticsearchSpanConsumer.prefixWithTimestampMillisAndQuery;
 
 public class ElasticsearchSpanConsumerTest {
@@ -210,6 +209,6 @@ public class ElasticsearchSpanConsumerTest {
   }
 
   void accept(Span... spans) throws Exception {
-    storage.spanConsumer().accept(asList(spans), any(Object.class)).execute();
+    storage.spanConsumer().accept(asList(spans)).execute();
   }
 }

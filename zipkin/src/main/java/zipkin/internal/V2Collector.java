@@ -16,33 +16,52 @@ package zipkin.internal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import zipkin.collector.CollectorMetrics;
 import zipkin.collector.CollectorSampler;
+import zipkin.collector.SpanDecorator;
 import zipkin.storage.Callback;
 import zipkin2.Span;
 import zipkin2.codec.BytesDecoder;
 import zipkin2.storage.StorageComponent;
-
 import static zipkin.internal.Util.checkNotNull;
 
 public final class V2Collector extends Collector<BytesDecoder<Span>, Span> {
   final StorageComponent storage;
   final CollectorSampler sampler;
 
+  final List<SpanDecorator<Span>> interceptors;
+  
   public V2Collector(Logger logger, @Nullable CollectorMetrics metrics,
-    @Nullable CollectorSampler sampler, StorageComponent storage) {
+    @Nullable CollectorSampler sampler, StorageComponent storage,
+    List<SpanDecorator<Span>> v2Interceptors) {
     super(logger, metrics);
     this.storage = checkNotNull(storage, "storage");
     this.sampler = sampler == null ? CollectorSampler.ALWAYS_SAMPLE : sampler;
+    this.interceptors = v2Interceptors;
   }
 
+  // MAC -- accept() signature modification
   @Override
-  public void acceptSpans(byte[] serializedSpans, BytesDecoder<Span> decoder,
+  public void acceptSpans(Map<String, String> requestInfo, byte[] serializedSpans, BytesDecoder<Span> decoder,
     Callback<Void> callback) {
-    super.acceptSpans(serializedSpans, decoder, callback);
+    super.acceptSpans(requestInfo, serializedSpans, decoder, callback);
   }
+
+  // ############ MAC ###################
+  @Override
+  protected List<Span> decorateSpans(Map<String, String> requestInfo, List<Span> sampledSpans) {
+    
+    List<Span> spansToStore = sampledSpans;
+    for ( SpanDecorator<Span> interceptor : interceptors) {
+      spansToStore = interceptor.decorate(requestInfo, spansToStore);
+    }
+    return spansToStore;
+  }
+  // ############ MAC ###################
+  
 
   @Override protected List<Span> decodeList(BytesDecoder<Span> decoder, byte[] serialized) {
     List<Span> out = new ArrayList<>();
@@ -55,7 +74,7 @@ public final class V2Collector extends Collector<BytesDecoder<Span>, Span> {
   }
 
   @Override protected void record(List<Span> sampled, Callback<Void> callback) {
-    storage.spanConsumer().accept(sampled, callback.getCallbackObject()).enqueue(new V2CallbackAdapter<>(callback));
+    storage.spanConsumer().accept(sampled).enqueue(new V2CallbackAdapter<>(callback));
   }
 
   @Override protected String idString(Span span) {

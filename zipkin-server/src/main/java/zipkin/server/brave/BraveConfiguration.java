@@ -165,10 +165,6 @@ public class BraveConfiguration {
     @Override public void onError(Throwable throwable) {
       delegate.onError(throwable);
     }
-    @Override
-    public Object getCallbackObject() {
-      return null;
-    }
   }
 
   static final class ReporterMetricsAdapter implements ReporterMetrics {

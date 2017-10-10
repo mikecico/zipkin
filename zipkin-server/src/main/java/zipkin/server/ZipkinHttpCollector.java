@@ -16,10 +16,13 @@ package zipkin.server;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import javax.annotation.Nullable;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -33,6 +36,7 @@ import zipkin.SpanDecoder;
 import zipkin.collector.Collector;
 import zipkin.collector.CollectorMetrics;
 import zipkin.collector.CollectorSampler;
+import zipkin.collector.SpanDecorator;
 import zipkin.internal.V2JsonSpanDecoder;
 import zipkin.storage.Callback;
 import zipkin.storage.StorageComponent;
@@ -54,44 +58,44 @@ public class ZipkinHttpCollector {
   final Collector collector;
 
   @Autowired ZipkinHttpCollector(StorageComponent storage, CollectorSampler sampler,
-      CollectorMetrics metrics) {
+      CollectorMetrics metrics,
+      @Qualifier(SpanDecorator.V1_QUALIFIER) List<SpanDecorator<zipkin.Span>> v1InterceptorsList,
+      @Qualifier(SpanDecorator.V2_QUALIFIER) List<SpanDecorator<zipkin2.Span>> v2InterceptorsList) {
     this.metrics = metrics.forTransport("http");
     this.collector = Collector.builder(getClass())
-        .storage(storage).sampler(sampler).metrics(this.metrics).build();
+        .storage(storage).sampler(sampler).metrics(this.metrics)
+        .v1Interceptors(v1InterceptorsList).v2Interceptors(v2InterceptorsList).build();
   }
 
   @RequestMapping(value = "/api/v2/spans", method = POST)
   public ListenableFuture<ResponseEntity<?>> uploadSpansJson2(
     @RequestHeader(value = "Content-Encoding", required = false) String encoding,
-    @RequestHeader(value = "X-ODX-PodKey", required = false) String podKey,
-//    @RequestHeader(value = "X-ODX-PodName", required = false) String podName,
+    @RequestHeader Map<String, String> allHeaders,
     @RequestBody byte[] body
   ) {
-    return validateAndStoreSpans(encoding, podKey, JSON2_DECODER, body);
+    return validateAndStoreSpans(encoding, allHeaders, JSON2_DECODER, body);
   }
 
   @RequestMapping(value = "/api/v1/spans", method = POST)
   public ListenableFuture<ResponseEntity<?>> uploadSpansJson(
       @RequestHeader(value = "Content-Encoding", required = false) String encoding,
-      @RequestHeader(value = "X-ODX-PodKey", required = false) String podKey,
-//    @RequestHeader(value = "X-ODX-PodName", required = false) String podName,
+      @RequestHeader Map<String, String> allHeaders,
       @RequestBody byte[] body
   ) {
     
-    return validateAndStoreSpans(encoding, podKey, SpanDecoder.JSON_DECODER, body);
+    return validateAndStoreSpans(encoding, allHeaders, SpanDecoder.JSON_DECODER, body);
   }
 
   @RequestMapping(value = "/api/v1/spans", method = POST, consumes = APPLICATION_THRIFT)
   public ListenableFuture<ResponseEntity<?>> uploadSpansThrift(
       @RequestHeader(value = "Content-Encoding", required = false) String encoding,
-      @RequestHeader(value = "X-ODX-PodKey", required = false) String podKey,
-//    @RequestHeader(value = "X-ODX-PodName", required = false) String podName,
+      @RequestHeader Map<String, String> allHeaders,
       @RequestBody byte[] body
   ) {
-    return validateAndStoreSpans(encoding, podKey, SpanDecoder.THRIFT_DECODER, body);
+    return validateAndStoreSpans(encoding, allHeaders, SpanDecoder.THRIFT_DECODER, body);
   }
 
-  ListenableFuture<ResponseEntity<?>> validateAndStoreSpans(String encoding, final String podKey, SpanDecoder decoder,
+  ListenableFuture<ResponseEntity<?>> validateAndStoreSpans(String encoding, final Map<String, String> allHeaders, SpanDecoder decoder,
       byte[] body) {
     SettableListenableFuture<ResponseEntity<?>> result = new SettableListenableFuture<>();
     metrics.incrementMessages();
@@ -103,9 +107,7 @@ public class ZipkinHttpCollector {
         result.set(ResponseEntity.badRequest().body("Cannot gunzip spans: " + e.getMessage() + "\n"));
       }
     }
-    final String usePodKey = podKey == null ? "foo:bar:127.0.0.1" : podKey;
-    System.out.println("+++++++++ PodKey: " + usePodKey);
-    collector.acceptSpans(body, decoder, new Callback<Void>() {
+    collector.acceptSpans(allHeaders, body, decoder, new Callback<Void>() {
       @Override public void onSuccess(@Nullable Void value) {
         result.set(SUCCESS);
       }
@@ -115,10 +117,6 @@ public class ZipkinHttpCollector {
         result.set(t.getMessage() == null || message.startsWith("Cannot store")
             ? ResponseEntity.status(500).body(message + "\n")
             : ResponseEntity.status(400).body(message + "\n"));
-      }
-      @Override
-      public Object getCallbackObject() {
-        return usePodKey;
       }
     });
     return result;

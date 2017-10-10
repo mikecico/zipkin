@@ -54,7 +54,7 @@ final class KafkaStreamProcessor implements Runnable {
         try {
           metrics.incrementBytes(bytes.length);
           Span span = SpanDecoder.THRIFT_DECODER.readSpan(bytes);
-          collector.accept(Collections.singletonList(span), NOOP);
+          collector.accept(null, Collections.singletonList(span), NOOP);
         } catch (RuntimeException e) {
           metrics.incrementMessagesDropped();
         }

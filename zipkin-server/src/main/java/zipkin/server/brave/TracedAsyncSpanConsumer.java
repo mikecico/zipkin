@@ -50,10 +50,6 @@ final class TracedAsyncSpanConsumer implements AsyncSpanConsumer {
         brave.localTracer().finishSpan();
         callback.onError(t);
       }
-      @Override
-      public Object getCallbackObject() {
-        return null;
-      }
     });
   }
 }

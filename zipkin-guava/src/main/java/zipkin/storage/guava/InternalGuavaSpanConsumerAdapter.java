@@ -52,10 +52,5 @@ final class InternalGuavaSpanConsumerAdapter implements GuavaSpanConsumer {
     @Override public void onError(Throwable t) {
       setException(t);
     }
-    
-    @Override
-    public Object getCallbackObject() {
-      return null;
-    }
   }
 }

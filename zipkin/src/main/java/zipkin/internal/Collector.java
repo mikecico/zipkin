@@ -16,20 +16,23 @@ package zipkin.internal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
+
 import zipkin.collector.CollectorMetrics;
 import zipkin.storage.Callback;
 
 import static java.lang.String.format;
 import static java.util.logging.Level.WARNING;
+import static java.util.logging.Level.FINE;
 import static zipkin.internal.Util.checkNotNull;
 
 public abstract class Collector<D, S> {
 
   protected final Logger logger;
   protected final CollectorMetrics metrics;
-
+  
   protected Collector(Logger logger, @Nullable CollectorMetrics metrics) {
     this.logger = checkNotNull(logger, "logger");
     this.metrics = metrics == null ? CollectorMetrics.NOOP_METRICS : metrics;
@@ -41,13 +44,25 @@ public abstract class Collector<D, S> {
 
   protected abstract void record(List<S> spans, Callback<Void> callback);
 
+  protected abstract List<S> decorateSpans(Map<String, String> requestInfo, List<S> sampledSpans);
+
   protected abstract String idString(S span);
 
+  protected void debugMessage(String msg) {
+    if (logger.isLoggable(FINE))
+      logger.log(FINE, msg);
+  }
+  
   void warn(String message, Throwable e) {
     logger.log(WARNING, message, e);
   }
 
-  protected void acceptSpans(byte[] serializedSpans, D decoder, Callback<Void> callback) {
+  // MAC - backwards compatibility for alternative collectors
+  public void acceptSpans(byte[] serializedSpans, D decoder, Callback<Void> callback) {
+    acceptSpans(null, serializedSpans, decoder, callback);
+  }
+
+  protected void acceptSpans(Map<String, String> requestInfo, byte[] serializedSpans, D decoder, Callback<Void> callback) {
     metrics.incrementBytes(serializedSpans.length);
     List<S> spans;
     try {
@@ -56,10 +71,15 @@ public abstract class Collector<D, S> {
       callback.onError(errorReading(e));
       return;
     }
-    accept(spans, callback);
+    accept(requestInfo, spans, callback);
   }
 
-  public void accept(List<S> spans, Callback<Void> callback) {
+  // MAC - backwards compatibility for alternative collectors
+  public void acceptSpans(List<S> serializedSpans, Callback<Void> callback) {
+    accept(null, serializedSpans, callback);
+  }
+
+  public void accept(Map<String, String> requestInfo, List<S> spans, Callback<Void> callback) {
     if (spans.isEmpty()) {
       callback.onSuccess(null);
       return;
@@ -73,7 +93,9 @@ public abstract class Collector<D, S> {
     }
 
     try {
-      record(sampled, acceptSpansCallback(sampled, callback.getCallbackObject()));
+      List<S> decoratedSpans = decorateSpans(requestInfo, sampled);
+      debugMessage("Recording spans: " + decoratedSpans);
+      record(decoratedSpans, acceptSpansCallback(decoratedSpans));
       callback.onSuccess(null);
     } catch (RuntimeException e) {
       callback.onError(errorStoringSpans(sampled, e));
@@ -91,7 +113,7 @@ public abstract class Collector<D, S> {
     return sampled;
   }
 
-  Callback<Void> acceptSpansCallback(final List<S> spans, final Object userCallbackObject) {
+  Callback<Void> acceptSpansCallback(final List<S> spans) {
     return new Callback<Void>() {
       @Override public void onSuccess(@Nullable Void value) {
       }
@@ -103,11 +125,6 @@ public abstract class Collector<D, S> {
       @Override
       public String toString() {
         return appendSpanIds(spans, new StringBuilder("AcceptSpans(")).append(")").toString();
-      }
-      
-      @Override
-      public Object getCallbackObject() {
-        return userCallbackObject;
       }
     };
   }

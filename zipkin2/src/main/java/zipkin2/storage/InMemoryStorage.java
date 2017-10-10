@@ -139,7 +139,7 @@ public final class InMemoryStorage extends StorageComponent implements SpanStore
     serviceToSpanNames.clear();
   }
 
-  @Override synchronized public Call<Void> accept(List<Span> spans, Object outOfBandData) {
+  @Override synchronized public Call<Void> accept(List<Span> spans) {
     int delta = spans.size();
     int spansToRecover = (spansByTraceIdTimeStamp.size() + delta) - maxSpanCount;
     evictToRecoverSpans(spansToRecover);

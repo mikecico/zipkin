@@ -28,7 +28,6 @@ import zipkin2.storage.StorageComponent;
 
 import static java.util.Arrays.asList;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -37,6 +36,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static zipkin.TestObjects.LOTS_OF_SPANS;
 import static zipkin.storage.Callback.NOOP;
+
+import java.util.HashMap;
 
 public class CollectorTest {
   zipkin.storage.StorageComponent storage = mock(zipkin.storage.StorageComponent.class);
@@ -57,7 +58,7 @@ public class CollectorTest {
       .sampler(CollectorSampler.create(0.0f))
       .storage(storage).build();
 
-    collector.accept(asList(span1), NOOP);
+    collector.accept(new HashMap<String,String>(), asList(span1), NOOP);
   }
 
   @Test public void doesntCallDeprecatedSampleMethod() {
@@ -68,7 +69,7 @@ public class CollectorTest {
       .sampler(sampler)
       .storage(storage).build();
 
-    collector.accept(asList(span1), NOOP);
+    collector.accept(new HashMap<String,String>(), asList(span1), NOOP);
 
     verify(sampler).isSampled(span1.traceId, span1.debug);
   }
@@ -80,17 +81,18 @@ public class CollectorTest {
       .metrics(metrics)
       .storage(storage).build();
 
-    collector.acceptSpans("foo".getBytes(Util.UTF_8), new DetectingSpanDecoder(), NOOP);
+    collector.acceptSpans(new HashMap<String,String>(), "foo".getBytes(Util.UTF_8), new DetectingSpanDecoder(), NOOP);
 
     verify(metrics).incrementMessagesDropped();
   }
 
   @Test public void convertsSpan2Format() {
     byte[] bytes = SpanBytesEncoder.JSON_V2.encodeList(asList(span2_1));
-    collector.acceptSpans(bytes, SpanDecoder.DETECTING_DECODER, NOOP);
+    HashMap<String, String> allHeaders = new HashMap<String,String>();
+    collector.acceptSpans(allHeaders, bytes, SpanDecoder.DETECTING_DECODER, NOOP);
 
-    verify(collector).acceptSpans(bytes, SpanDecoder.DETECTING_DECODER, NOOP);
-    verify(collector).accept(asList(span1), NOOP);
+    verify(collector).acceptSpans(allHeaders, bytes, SpanDecoder.DETECTING_DECODER, NOOP);
+    verify(collector).accept(allHeaders, asList(span1), NOOP);
   }
 
   /**
@@ -106,10 +108,11 @@ public class CollectorTest {
     collector = spy(Collector.builder(Collector.class)
       .storage(V2StorageComponent.create(storage)).build());
 
+    HashMap<String, String> allHeaders = new HashMap<String,String>();
     byte[] bytes = SpanBytesEncoder.JSON_V2.encodeList(asList(span2_1));
-    collector.acceptSpans(bytes, SpanDecoder.DETECTING_DECODER, NOOP);
+    collector.acceptSpans(allHeaders, bytes, SpanDecoder.DETECTING_DECODER, NOOP);
 
     verify(collector, never()).isSampled(any(zipkin.Span.class)); // skips v1 processing
-    verify(span2Consumer).accept(eq(asList(span2_1)), anyObject()); // goes to v2 instead
+    verify(span2Consumer).accept(eq(asList(span2_1))); // goes to v2 instead
   }
 }

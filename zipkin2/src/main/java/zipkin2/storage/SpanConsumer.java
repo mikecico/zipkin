@@ -19,5 +19,5 @@ import zipkin2.Span;
 
 // @FunctionalInterface
 public interface SpanConsumer {
-  Call<Void> accept(List<Span> spans, Object outOfBandData);
+  Call<Void> accept(List<Span> spans);
 }

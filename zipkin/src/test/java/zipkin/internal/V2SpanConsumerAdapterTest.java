@@ -47,7 +47,7 @@ public class V2SpanConsumerAdapterTest {
 
   @Before public void setUp() {
     asyncSpanConsumer = new V2SpanConsumerAdapter(delegate);
-    when(delegate.accept(any(List.class),anyObject())).thenReturn(call);
+    when(delegate.accept(any(List.class))).thenReturn(call);
   }
 
   @Test public void accept_success() {

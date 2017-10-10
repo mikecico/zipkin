@@ -15,6 +15,7 @@ package zipkin.collector;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import zipkin.SpanDecoder;
 import zipkin.internal.DetectingSpanDecoder;
@@ -39,7 +40,7 @@ import static zipkin.internal.Util.checkNotNull;
  * threads.
  */
 public class Collector
-  extends zipkin.internal.Collector<SpanDecoder, zipkin.Span> { // not final for mock
+  extends zipkin.internal.Collector<SpanDecoder, zipkin.Span> {  // not final for mock
 
   /** Needed to scope this to the correct logging category */
   public static Builder builder(Class<?> loggingClass) {
@@ -51,6 +52,8 @@ public class Collector
     StorageComponent storage = null;
     CollectorSampler sampler = null;
     CollectorMetrics metrics = null;
+    private List<SpanDecorator<zipkin.Span>> v1Interceptors;
+    private List<SpanDecorator<zipkin2.Span>> v2Interceptors;
 
     Builder(Logger logger) {
       this.logger = logger;
@@ -77,30 +80,46 @@ public class Collector
     public Collector build() {
       return new Collector(this);
     }
+
+    public Builder v1Interceptors(final List<SpanDecorator<zipkin.Span>> v1InterceptorsList) {
+      this.v1Interceptors=v1InterceptorsList;
+      return this;
+    }
+
+    public Builder v2Interceptors(List<SpanDecorator<zipkin2.Span>> v2InterceptorsList) {
+      this.v2Interceptors=v2InterceptorsList;
+      return this;
+    }
   }
 
   final CollectorSampler sampler;
   final StorageComponent storage;
   final V2Collector storage2;
+  final protected List<SpanDecorator<zipkin.Span>> v1Interceptors;
+  final protected List<SpanDecorator<zipkin2.Span>> v2Interceptors;
 
   Collector(Builder builder) {
     super(builder.logger, builder.metrics);
     this.storage = checkNotNull(builder.storage, "storage");
     this.sampler = builder.sampler == null ? CollectorSampler.ALWAYS_SAMPLE : builder.sampler;
+    this.v1Interceptors = builder.v1Interceptors;
+    this.v2Interceptors = builder.v2Interceptors;
     if (storage instanceof V2StorageComponent) {
       storage2 = new V2Collector(
         builder.logger,
         builder.metrics,
         builder.sampler,
-        ((V2StorageComponent) storage).delegate()
+        ((V2StorageComponent) storage).delegate(),
+        v2Interceptors
       );
     } else {
       storage2 = null;
     }
   }
-
+  
+  // MAC -- accept() signature modification
   @Override
-  public void acceptSpans(byte[] serializedSpans, SpanDecoder decoder, Callback<Void> callback) {
+  public void acceptSpans(Map<String, String> requestInfo, byte[] serializedSpans, SpanDecoder decoder, Callback<Void> callback) {
     try {
       if (decoder instanceof DetectingSpanDecoder) decoder = detectFormat(serializedSpans);
     } catch (RuntimeException e) {
@@ -109,16 +128,16 @@ public class Collector
       return;
     }
     if (storage2 != null && decoder instanceof V2JsonSpanDecoder) {
-      storage2.acceptSpans(serializedSpans, SpanBytesDecoder.JSON_V2, callback);
+      storage2.acceptSpans(requestInfo, serializedSpans, SpanBytesDecoder.JSON_V2, callback);
     } else {
-      super.acceptSpans(serializedSpans, decoder, callback);
+      super.acceptSpans(requestInfo, serializedSpans, decoder, callback);
     }
   }
 
   /**
    * @deprecated All transports accept encoded lists of spans. Please update reporters to do so.
    */
-  @Deprecated public void acceptSpans(List<byte[]> serializedSpans, SpanDecoder decoder,
+  @Deprecated public void acceptSpans(Map<String, String> requestInfo, List<byte[]> serializedSpans, SpanDecoder decoder,
     Callback<Void> callback) {
     List<zipkin.Span> spans = new ArrayList<>(serializedSpans.size());
     try {
@@ -132,22 +151,40 @@ public class Collector
       callback.onError(errorReading(e));
       return;
     }
-    accept(spans, callback);
+    accept(requestInfo, spans, callback);
   }
 
-  @Override public void accept(List<zipkin.Span> spans, Callback<Void> callback) {
+  // MAC - backwards compatibility for alternative collectors
+  public void acceptSpans(List<zipkin.Span> serializedSpans, Callback<Void> callback) {
+    accept(null, serializedSpans, callback);
+  }
+
+  // MAC -- accept() signature modification
+  @Override public void accept(Map<String, String> requestInfo, List<zipkin.Span> spans, Callback<Void> callback) {
     if (storage2 != null) {
       int length = spans.size();
       List<Span> span2s = new ArrayList<>(length);
       for (int i = 0; i < length; i++) {
         span2s.addAll(V2SpanConverter.fromSpan(spans.get(i)));
       }
-      storage2.accept(span2s, callback);
+      storage2.accept(requestInfo, span2s, callback);
     } else {
-      super.accept(spans, callback);
+      super.accept(requestInfo, spans, callback);
     }
   }
 
+  // ############ MAC ###################
+  @Override
+  protected List<zipkin.Span> decorateSpans(Map<String, String> requestInfo, List<zipkin.Span> sampledSpans) {
+
+    List<zipkin.Span> spansToStore = sampledSpans;
+    for ( SpanDecorator<zipkin.Span> interceptor : v1Interceptors) {
+      spansToStore = interceptor.decorate(requestInfo, spansToStore);
+    }
+    return spansToStore;
+  }
+  // ############ MAC ###################
+  
   @Override protected List<zipkin.Span> decodeList(SpanDecoder decoder, byte[] serialized) {
     return decoder.readSpans(serialized);
   }

@@ -26,7 +26,7 @@ import zipkin.storage.Callback;
 import zipkin2.Span.Builder;
 import zipkin.internal.*;
 
-import static com.oracle.odx.jafar.zipkin.JafarSpanEnhancer.getPodMetadata;
+//import static com.oracle.odx.jafar.zipkin.JafarSpanEnhancer.getPodMetadata;
 
 public class JafarAsyncSpanConsumer implements AsyncSpanConsumer {
 
@@ -58,29 +58,29 @@ public class JafarAsyncSpanConsumer implements AsyncSpanConsumer {
     
     System.out.println("+++++++++ JAFAR received spans: " + spans);
     
-    String podKey = "UKNOWN:UNKNOWN:UNKNOWN";
-    Object callbackObject = callback.getCallbackObject();
-    if (callbackObject != null && callbackObject instanceof String) {
-      podKey = (String) callbackObject;
-    }
+//    String podKey = "UKNOWN:UNKNOWN:UNKNOWN";
+//    Object callbackObject = callback.getCallbackObject();
+//    if (callbackObject != null && callbackObject instanceof String) {
+//      podKey = (String) callbackObject;
+//    }
     
-    System.out.println("+++++++++ JAFAR callback object value: " + callbackObject);
+//    System.out.println("+++++++++ JAFAR callback object value: " + callbackObject);
     
-    Map<String, Object> podMetaData = getPodMetadata(podKey, VERBOSE_ENHANCEMENT);
-    podMetaData.put("Jafar-Enhancer-Version", ENHANCER_VERSION);
-    
+//    Map<String, Object> podMetaData = getPodMetadata(podKey, VERBOSE_ENHANCEMENT);
+//    podMetaData.put("Jafar-Enhancer-Version", ENHANCER_VERSION);
+//    
     List<Span> modifiedSpans = new ArrayList<Span>(spans.size());
-    if (PASS_THROUGH) {
-      System.out.println("------- PASS-THROUGH Mode, skip span enhancement");
-      modifiedSpans.addAll(spans);
-    } else {
-      for (Span sourceSpan : spans) {
-        System.out.println("------- Input span: " + sourceSpan);
-        List<Span> annotatedSpans = enhanceSpan(sourceSpan, podMetaData);
-        displayConvertedSpans(annotatedSpans);
-        modifiedSpans.addAll(annotatedSpans);
-      }
-    }
+//    if (PASS_THROUGH) {
+//      System.out.println("------- PASS-THROUGH Mode, skip span enhancement");
+//      modifiedSpans.addAll(spans);
+//    } else {
+//      for (Span sourceSpan : spans) {
+//        System.out.println("------- Input span: " + sourceSpan);
+//        List<Span> annotatedSpans = enhanceSpan(sourceSpan, podMetaData);
+//        displayConvertedSpans(annotatedSpans);
+//        modifiedSpans.addAll(annotatedSpans);
+//      }
+//    }
     
     if (delegate != null) {
       try {
@@ -95,27 +95,27 @@ public class JafarAsyncSpanConsumer implements AsyncSpanConsumer {
     callback.onSuccess(null);
   }
 
-  private void displayConvertedSpans(List<Span> annotatedSpans) {
-    System.out.println("+++++++ Output spans: " + annotatedSpans);
-    for (Span annotatedSpan : annotatedSpans) {
-      System.out.println("\t" + annotatedSpan);
-    }
-  }
-
-  private List<Span> enhanceSpan(Span sourceSpan, Map<String, Object> podMetadata) {
-    List<zipkin2.Span> span2Copies = V2SpanConverter.fromSpan(sourceSpan); 
-    List<Span> convertedSpans = new ArrayList<Span>();
-    for (zipkin2.Span span : span2Copies) {
-      Builder span2Builder = span.toBuilder();
-      for (Entry<String, Object> entry : podMetadata.entrySet()) {
-        Object value = entry.getValue();
-        span2Builder.putTag(entry.getKey(), value == null ? "" : value.toString());
-      }
-      zipkin2.Span updatedSpan2 = span2Builder.build();
-      //System.out.println("\t\tspan2 with tags:" + updatedSpan2.toString());
-      convertedSpans.add(V2SpanConverter.toSpan(updatedSpan2));   
-    }
-    return convertedSpans;
-  }
+//  private void displayConvertedSpans(List<Span> annotatedSpans) {
+//    System.out.println("+++++++ Output spans: " + annotatedSpans);
+//    for (Span annotatedSpan : annotatedSpans) {
+//      System.out.println("\t" + annotatedSpan);
+//    }
+//  }
+//
+//  private List<Span> enhanceSpan(Span sourceSpan, Map<String, Object> podMetadata) {
+//    List<zipkin2.Span> span2Copies = V2SpanConverter.fromSpan(sourceSpan); 
+//    List<Span> convertedSpans = new ArrayList<Span>();
+//    for (zipkin2.Span span : span2Copies) {
+//      Builder span2Builder = span.toBuilder();
+//      for (Entry<String, Object> entry : podMetadata.entrySet()) {
+//        Object value = entry.getValue();
+//        span2Builder.putTag(entry.getKey(), value == null ? "" : value.toString());
+//      }
+//      zipkin2.Span updatedSpan2 = span2Builder.build();
+//      //System.out.println("\t\tspan2 with tags:" + updatedSpan2.toString());
+//      convertedSpans.add(V2SpanConverter.toSpan(updatedSpan2));   
+//    }
+//    return convertedSpans;
+//  }
 
 }

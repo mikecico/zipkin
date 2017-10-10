@@ -30,11 +30,6 @@ public interface Callback<V> {
 
     @Override public void onError(Throwable t) {
     }
-    
-    @Override
-    public Object getCallbackObject() {
-      return null;
-    }
   };
 
   /**
@@ -50,6 +45,4 @@ public interface Callback<V> {
    * <p>When this is called, {@link #onSuccess} won't be.
    */
   void onError(Throwable t);
-
-  Object getCallbackObject();
 }

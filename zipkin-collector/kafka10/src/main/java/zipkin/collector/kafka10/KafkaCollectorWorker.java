@@ -81,7 +81,7 @@ final class KafkaCollectorWorker implements Runnable {
               metrics.incrementBytes(bytes.length);
               try {
                 Span span = SpanDecoder.THRIFT_DECODER.readSpan(bytes);
-                collector.accept(Collections.singletonList(span), NOOP);
+                collector.accept(null, Collections.singletonList(span), NOOP);
               } catch (RuntimeException e) {
                 metrics.incrementMessagesDropped();
               }

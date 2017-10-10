@@ -56,9 +56,4 @@ abstract class LenientDoubleCallback<V> implements Callback<V> {
       delegate.onError(throwable);
     }
   }
-
-  @Override
-  public Object getCallbackObject() {
-    return null;
-  }
 }

@@ -56,18 +56,13 @@ final class ScribeSpanConsumer implements Scribe {
     }
 
     SettableFuture<ResultCode> result = SettableFuture.create();
-    collector.accept(spans, new Callback<Void>() {
+    collector.accept(null, spans, new Callback<Void>() {
       @Override public void onSuccess(@Nullable Void value) {
         result.set(ResultCode.OK);
       }
 
       @Override public void onError(Throwable t) {
         result.setException(t);
-      }
-      
-      @Override
-      public Object getCallbackObject() {
-        return null;
       }
     });
     return result;

@@ -16,10 +16,8 @@ package zipkin2.elasticsearch;
 import com.squareup.moshi.JsonWriter;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,24 +27,13 @@ import okio.ByteString;
 import zipkin2.Annotation;
 import zipkin2.Call;
 import zipkin2.Span;
-import zipkin2.Span.Builder;
 import zipkin2.codec.SpanBytesEncoder;
 import zipkin2.elasticsearch.internal.HttpBulkIndexer;
 import zipkin2.elasticsearch.internal.IndexNameFormatter;
 import zipkin2.elasticsearch.internal.client.HttpCall;
 import zipkin2.storage.SpanConsumer;
 
-import static zipkin2.elasticsearch.internal.JafarSpanEnhancer.getPodMetadata;
-
 class ElasticsearchSpanConsumer implements SpanConsumer { // not final for testing
-  
-  // ############ MAC ###################
-  // Option to skip the span-enhancement for debugging purposes; if set
-  // Spans will be passed through without modification
-  private static final String ENHANCER_VERSION = "0.3-es";
-  private static final Boolean PASS_THROUGH = Boolean.getBoolean("jafar.proxy.passthrough");
-  private static final boolean VERBOSE_ENHANCEMENT = Boolean.getBoolean("jafar.proxy.include.details");
-  // ############ MAC ###################
   
   static final Logger LOG = Logger.getLogger(ElasticsearchSpanConsumer.class.getName());
 
@@ -58,27 +45,10 @@ class ElasticsearchSpanConsumer implements SpanConsumer { // not final for testi
     this.indexNameFormatter = es.indexNameFormatter();
   }
 
-  @Override public Call<Void> accept(List<Span> spans, Object outOfBandData) {
-    System.out.println("+++++++++ Out of Band: " + outOfBandData);
+  @Override public Call<Void> accept(List<Span> spans) {
     if (spans.isEmpty()) return Call.create(null);
     BulkSpanIndexer indexer = new BulkSpanIndexer(es);
-
-    List<Span> spansToStore = spans;
-    if (PASS_THROUGH) {
-      System.out.println("------- PASS-THROUGH Mode, skip span enhancement");
-    } else {
-      String podKey = "UKNOWN:UNKNOWN:UNKNOWN";
-      if (outOfBandData != null && outOfBandData instanceof String) {
-        podKey = (String) outOfBandData;
-      }
-      System.out.println("+++++++++ pod key: " + podKey);
-      
-      Map<String, Object> podMetaData = getPodMetadata(podKey, VERBOSE_ENHANCEMENT);
-      podMetaData.put("Jafar-Enhancer-Version", ENHANCER_VERSION);
-      spansToStore = enhanceSpans(spans, podMetaData);
-    }
-
-    indexSpans(indexer, spansToStore);
+    indexSpans(indexer, spans);
     return indexer.newCall();
   }
 
@@ -101,24 +71,6 @@ class ElasticsearchSpanConsumer implements SpanConsumer { // not final for testi
     }
   }
 
-  // ############ MAC ###################
-  private List<Span> enhanceSpans(List<Span> sourceSpans, Map<String, Object> podMetadata) {
-    List<Span> convertedSpans = new ArrayList<Span>(sourceSpans.size());
-    for (Span span : sourceSpans) {
-      System.out.println("------- Input span: " + span);
-      Builder enhSpanBuilder = span.toBuilder();
-      for (Entry<String, Object> entry : podMetadata.entrySet()) {
-        Object value = entry.getValue();
-        enhSpanBuilder.putTag(entry.getKey(), value == null ? "" : value.toString());
-      }
-      Span enhancedSpan = enhSpanBuilder.build();
-      System.out.println("------- Output span: " + enhancedSpan);
-      convertedSpans.add(enhancedSpan);
-    }
-    return convertedSpans;
-  }
-  // ############ MAC ###################
-  
   static final class BulkSpanIndexer {
     final HttpBulkIndexer indexer;
     final IndexNameFormatter indexNameFormatter;

@@ -24,6 +24,7 @@ import org.springframework.boot.actuate.metrics.buffer.GaugeBuffers;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import zipkin.collector.CollectorMetrics;
 import zipkin.collector.CollectorSampler;
@@ -33,6 +34,7 @@ import zipkin.storage.StorageComponent;
 import zipkin2.storage.InMemoryStorage;
 
 @Configuration
+@ComponentScan("zipkin.server.jafar") // MAC
 public class ZipkinServerConfiguration {
 
   /** Registers health for any components, even those not in this jar. */

@@ -188,7 +188,7 @@ final class ZipkinDispatcher extends Dispatcher {
     }
 
     final MockResponse result = new MockResponse();
-    consumer.acceptSpans(body, decoder, new Callback<Void>() {
+    consumer.acceptSpans(null, body, decoder, new Callback<Void>() {
       @Override public void onSuccess(@Nullable Void value) {
         result.setResponseCode(202);
       }
@@ -196,11 +196,6 @@ final class ZipkinDispatcher extends Dispatcher {
       @Override public void onError(Throwable t) {
         String message = t.getMessage();
         result.setBody(message).setResponseCode(message.startsWith("Cannot store") ? 500 : 400);
-      }
-      
-      @Override
-      public Object getCallbackObject() {
-        return null;
       }
     });
     return result;
